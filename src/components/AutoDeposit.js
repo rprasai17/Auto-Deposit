@@ -2,23 +2,14 @@ import React, { useState } from 'react';
 
 function AutoDeposit() {
     const handleClick = () => {
-        console.log("autodeposit button clicked 1");
         chrome.tabs.query({ active: true, currentWindow: true },
             (tabs) => {
-                console.log("active tab found", tabs[0]);
                 chrome.scripting.executeScript({
                     target: { tabId: tabs[0].id },
-                    func: () => {
-                        console.log("executing clickElement funciton");
-                        clickElement();
-                    }
-                }, (results)=> {
+                    func: clickElement
+                }, (results) => {
                     if (chrome.runtime.lastError) {
                         console.error(chrome.runtime.lastError.message);
-                    }
-                    else
-                    {
-                        console.log("Script executed1", results);
                     }
                 });
             });
@@ -32,8 +23,16 @@ function AutoDeposit() {
 };
 
 function clickElement() {
-    console.log("clickElement executed");
+    const element = document.getElementById("post-payment-toolbar-item");
+    if (element) {
+        console.log("element was found");
+        element.click();
+    } else {
+        console.log("element not found");
+    }
 }
+
+
 
 
 export default AutoDeposit;

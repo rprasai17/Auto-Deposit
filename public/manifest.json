@@ -32,6 +32,12 @@
         "default": "Alt+Q"
       }
     }
-  }
+  },
+  "conent_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/contentScript.js"]
+    }
+  ]
 }
 
