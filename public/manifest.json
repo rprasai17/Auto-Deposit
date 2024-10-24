@@ -1,43 +1,63 @@
 {
   "manifest_version": 3,
   "name": "Room Price Calculator",
-  "permissions": ["sidePanel", "activeTab", "scripting"],
+  "version": "0.0.1",
   "description": "Easily calculate room prices before taxes",
   "icons": {
-    "128": "logo192.png",
-    "48": "logo192.png",
+    "16": "logo192.png",
     "32": "logo192.png",
-    "16": "logo192.png"
+    "48": "logo192.png",
+    "128": "logo192.png"
   },
-  "version": "0.0.1",
+  
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel"
+  ],
+  
+  "host_permissions": [
+    "<all_urls>",
+    "https://controlcenter-p2.synxis.com/*",
+    "https://*.synxis.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "logo192.png",
+      "32": "logo192.png",
+      "48": "logo192.png",
+      "128": "logo192.png"
+    }
+  },
+
   "side_panel": {
     "default_path": "index.html"
   },
+  
   "web_accessible_resources": [
     {
-      "matches": ["<all_urls>"],
-      "resources": ["index.html", "service-worker.js"],
-      "use_dynamic_url": true
+      "resources": ["index.html", "*.js", "*.css", "*.png"],
+      "matches": ["<all_urls>"]
     }
   ],
-  "host_permissions": ["<all_urls>"],
-  "action": {},
-  "background": {
-    "service_worker": "background.js"
-  },
+
   "commands": {
     "_execute_action": {
-      "description": "Shortcut for execute extension",
       "suggested_key": {
         "default": "Alt+Q"
-      }
+      },
+      "description": "Shortcut for execute extension"
     }
   },
-  "conent_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["src/contentScript.js"]
-    }
-  ]
-}
 
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
+  }
+}
