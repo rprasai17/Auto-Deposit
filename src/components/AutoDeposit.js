@@ -5,13 +5,16 @@ function AutoDeposit() {
     const [debug, setDebug] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const initializeAndClickElement = () => {
+    const initializeAndClickElement = async () => {
         const frameInfo = {
             url: window.location.href,
             hasFirstElement: false,
             hasSecondElement: false,
             firstElementClicked: false,
             secondElementClicked: false,
+            debitSelected: false,
+            amountEntered: false,
+            checkboxClicked: false,
             error: null,
             debugInfo: []
         };
@@ -21,8 +24,215 @@ function AutoDeposit() {
             frameInfo.debugInfo.push(message);
         };
 
+        const simulateKeyPress = (element, keyCode) => {
+            const keyDownEvent = new KeyboardEvent('keydown', {
+                bubbles: true,
+                cancelable: true,
+                key: keyCode,
+                code: keyCode,
+                keyCode: keyCode === 'Space' ? 32 : 13,
+                which: keyCode === 'Space' ? 32 : 13,
+            });
+            
+            const keyUpEvent = new KeyboardEvent('keyup', {
+                bubbles: true,
+                cancelable: true,
+                key: keyCode,
+                code: keyCode,
+                keyCode: keyCode === 'Space' ? 32 : 13,
+                which: keyCode === 'Space' ? 32 : 13,
+            });
+
+            element.dispatchEvent(keyDownEvent);
+            element.dispatchEvent(keyUpEvent);
+        };
+
+        const simulateExactKeypress = async (inputElement, key) => {
+            const dispatchEvent = (eventType, keyDetails) => {
+                const event = new KeyboardEvent(eventType, {
+                    key: keyDetails.key,
+                    code: keyDetails.code,
+                    keyCode: keyDetails.keyCode,
+                    which: keyDetails.keyCode,
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    composed: true,
+                    charCode: keyDetails.keyCode
+                });
+                Object.defineProperty(event, 'which', { value: keyDetails.keyCode });
+                return inputElement.dispatchEvent(event);
+            };
+
+            const keyDetails = {
+                key: key,
+                code: `Digit${key}`,
+                keyCode: key.charCodeAt(0)
+            };
+
+            // Keydown
+            dispatchEvent('keydown', keyDetails);
+            await new Promise(resolve => setTimeout(resolve, 5));
+
+            // Update input value
+            const prevValue = inputElement.value;
+            const newValue = prevValue + key;
+            inputElement.value = newValue;
+            inputElement.setAttribute('value', newValue);
+
+            // Input event
+            const inputEvent = new InputEvent('input', {
+                data: key,
+                inputType: 'insertText',
+                bubbles: true,
+                composed: true
+            });
+            inputElement.dispatchEvent(inputEvent);
+            await new Promise(resolve => setTimeout(resolve, 5));
+
+            // Keyup
+            dispatchEvent('keyup', keyDetails);
+            await new Promise(resolve => setTimeout(resolve, 5));
+        };
+
+        const simulateNumberInput = async (inputElement) => {
+            try {
+                // Get label element
+                const labelElement = inputElement.closest('label.spark-input');
+                if (!labelElement) {
+                    throw new Error('Could not find parent label');
+                }
+        
+                // Focus and click
+                inputElement.focus();
+                inputElement.click();
+                labelElement.classList.add('active');
+                await new Promise(resolve => setTimeout(resolve, 50));
+        
+                // Clear existing value
+                inputElement.value = '';
+                inputElement.setAttribute('value', '');
+                inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+                await new Promise(resolve => setTimeout(resolve, 50));
+        
+                // Create and dispatch paste event
+                const pasteEvent = new ClipboardEvent('paste', {
+                    bubbles: true,
+                    cancelable: true,
+                    clipboardData: new DataTransfer()
+                });
+                
+                // Set the clipboard data
+                Object.defineProperty(pasteEvent.clipboardData, 'getData', {
+                    value: () => '50'
+                });
+        
+                // Dispatch paste event
+                inputElement.dispatchEvent(pasteEvent);
+        
+                // Set the value (as the paste event would)
+                inputElement.value = '50';
+                inputElement.setAttribute('value', '50');
+        
+                // Dispatch necessary follow-up events
+                const events = [
+                    new InputEvent('input', {
+                        bubbles: true,
+                        cancelable: true,
+                        inputType: 'insertFromPaste',
+                        data: '50'
+                    }),
+                    new Event('change', { bubbles: true }),
+                    new FocusEvent('blur', { bubbles: true })
+                ];
+        
+                for (const event of events) {
+                    inputElement.dispatchEvent(event);
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+        
+                // Log verification
+                const finalValue = inputElement.getAttribute('value');
+                const displayValue = inputElement.value;
+                logDebug(`Verification - Input value: ${displayValue}, Attribute value: ${finalValue}`);
+        
+                return finalValue === '50' && displayValue === '50';
+            } catch (error) {
+                logDebug(`Error in simulateNumberInput: ${error.message}`);
+                return false;
+            }
+        };
+        
+        // Also modify the handleAmountAndCheckbox function to monitor for successful input
+        const handleAmountAndCheckbox = async (amountInput) => {
+            try {
+                // First ensure "Pay other amount" radio is selected
+                const payOtherAmountRadio = document.getElementById('pay-other-amount-radio-button');
+                if (payOtherAmountRadio && !payOtherAmountRadio.checked) {
+                    payOtherAmountRadio.click();
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+        
+                // Set up an input monitor
+                const inputMonitor = (event) => {
+                    logDebug(`Input event detected - Current value: ${event.target.value}`);
+                };
+                amountInput.addEventListener('input', inputMonitor);
+        
+                // Try multiple times if needed
+                let success = false;
+                let attempts = 0;
+                while (!success && attempts < 3) {
+                    attempts++;
+                    logDebug(`Attempt ${attempts} to enter amount`);
+                    success = await simulateNumberInput(amountInput);
+                    if (!success) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                }
+        
+                // Clean up monitor
+                amountInput.removeEventListener('input', inputMonitor);
+        
+                if (!success) {
+                    throw new Error('Failed to enter amount properly');
+                }
+        
+                logDebug(`Amount entered successfully: ${amountInput.getAttribute('value')}`);
+        
+                // Handle checkbox
+                const checkboxInput = document.getElementById('guestConsentCheckBox');
+                if (checkboxInput && !checkboxInput.checked) {
+                    const valueBeforeCheckbox = amountInput.getAttribute('value');
+                    logDebug(`Value before checkbox: ${valueBeforeCheckbox}`);
+                    
+                    checkboxInput.click();
+                    frameInfo.checkboxClicked = true;
+                    logDebug('Checkbox clicked');
+        
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    if (amountInput.getAttribute('value') !== '50') {
+                        logDebug('Value was cleared, attempting to restore');
+                        success = await simulateNumberInput(amountInput);
+                        if (!success) {
+                            throw new Error('Failed to restore amount after checkbox');
+                        }
+                    }
+                }
+        
+                frameInfo.amountEntered = amountInput.getAttribute('value') === '50';
+                
+                // Final verification
+                logDebug(`Final verification - Amount value: ${amountInput.getAttribute('value')}`);
+                
+            } catch (error) {
+                frameInfo.error = `Amount input error: ${error.message}`;
+                logDebug(`Error in handleAmountAndCheckbox: ${error.message}`);
+            }
+        };
+
         try {
-            // First element - post-payment-toolbar-item
             const firstElement = document.getElementById('post-payment-toolbar-item');
             frameInfo.hasFirstElement = !!firstElement;
 
@@ -33,105 +243,67 @@ function AutoDeposit() {
                         return frameInfo;
                     }
 
-                    const originalDisplay = firstElement.style.display;
-                    const originalVisibility = firstElement.style.visibility;
-                    const originalPointerEvents = firstElement.style.pointerEvents;
-                    
-                    firstElement.style.display = 'flex';
-                    firstElement.style.visibility = 'visible';
-                    firstElement.style.pointerEvents = 'auto';
-                    firstElement.style.opacity = '1';
-
-                    firstElement.dataset.recentlyClicked = 'true';
                     firstElement.click();
                     frameInfo.firstElementClicked = true;
                     logDebug('First element clicked successfully');
 
-                    setTimeout(() => {
-                        firstElement.style.display = originalDisplay;
-                        firstElement.style.visibility = originalVisibility;
-                        firstElement.style.pointerEvents = originalPointerEvents;
-                        
-                        setTimeout(() => {
-                            firstElement.dataset.recentlyClicked = 'false';
-                        }, 1000);
-                    }, 100);
+                    await new Promise(resolve => setTimeout(resolve, 800));
 
-                    // Second element - try multiple methods to find the select
-                    setTimeout(() => {
-                        logDebug('Attempting to find select element...');
-                        
-                        // Try different selectors
-                        const selectElement = (
-                            document.querySelector('.spark-select__input.folio-post-payment__drop-down-color') ||
-                            document.querySelector('.spark-select__input') ||
-                            document.querySelector('[class*="spark-select__input"]') ||
-                            document.querySelector('select[class*="folio-post-payment"]') ||
-                            document.querySelector('select')
-                        );
+                    const paymentMethodSelect = document.querySelector('select.spark-select__input.folio-post-payment__drop-down-color');
 
-                        if (selectElement) {
-                            logDebug('Select element found with classes: ' + selectElement.className);
+                    if (paymentMethodSelect) {
+                        logDebug('Select element found');
+                        try {
+                            paymentMethodSelect.focus();
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            simulateKeyPress(paymentMethodSelect, 'Space');
                             
-                            // Log element details for debugging
-                            logDebug('Select element details:');
-                            logDebug('- Tag: ' + selectElement.tagName);
-                            logDebug('- ID: ' + selectElement.id);
-                            logDebug('- Classes: ' + selectElement.className);
-                            logDebug('- Parent classes: ' + selectElement.parentElement?.className);
-                            logDebug('- Display: ' + getComputedStyle(selectElement).display);
-                            logDebug('- Visibility: ' + getComputedStyle(selectElement).visibility);
-                            
-                            frameInfo.hasSecondElement = true;
+                            const visaOption = Array.from(paymentMethodSelect.options)
+                                .find(option => option.value.includes('VI - VISA'));
 
-                            try {
-                                // Try multiple interaction methods
-                                selectElement.focus();
-                                logDebug('Select element focused');
+                            if (visaOption) {
+                                paymentMethodSelect.value = visaOption.value;
+                                paymentMethodSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                                paymentMethodSelect.dispatchEvent(new Event('input', { bubbles: true }));
+                                simulateKeyPress(paymentMethodSelect, 'Enter');
+                                logDebug(`Selected value: ${paymentMethodSelect.value}`);
                                 
-                                // Method 1: Direct click
-                                selectElement.click();
-                                logDebug('Direct click attempted');
-
-                                // Method 2: Programmatic selection
-                                if (selectElement.tagName.toLowerCase() === 'select') {
-                                    selectElement.dispatchEvent(new MouseEvent('mousedown'));
-                                    selectElement.dispatchEvent(new MouseEvent('mouseup'));
-                                    selectElement.dispatchEvent(new Event('change', { bubbles: true }));
-                                    logDebug('Select events dispatched');
-                                }
-
-                                // Method 3: Try to open the select dropdown
-                                if (selectElement.parentElement) {
-                                    const parentClickable = selectElement.parentElement.querySelector('[role="combobox"]') ||
-                                                         selectElement.parentElement.querySelector('[aria-haspopup="listbox"]');
-                                    if (parentClickable) {
-                                        parentClickable.click();
-                                        logDebug('Parent combobox clicked');
-                                    }
-                                }
-
                                 frameInfo.secondElementClicked = true;
-                                logDebug('Select element interaction attempts completed');
+                                frameInfo.hasSecondElement = true;
 
-                            } catch (selectError) {
-                                logDebug(`Error interacting with select: ${selectError.message}`);
-                                frameInfo.error = `Select interaction error: ${selectError.message}`;
+                                await new Promise(resolve => setTimeout(resolve, 500));
+
+                                const debitRadio = document.getElementById('debitRecognizationDebit');
+                                if (debitRadio) {
+                                    debitRadio.click();
+                                    frameInfo.debitSelected = true;
+                                    logDebug('Debit radio button selected');
+
+                                    await new Promise(resolve => setTimeout(resolve, 300));
+
+                                    const amountInput = document.getElementById('folio-amount-input');
+                                    if (amountInput) {
+                                        await handleAmountAndCheckbox(amountInput);
+                                    } else {
+                                        logDebug('Amount input not found');
+                                        frameInfo.error = 'Amount input not found';
+                                    }
+                                } else {
+                                    logDebug('Debit radio button not found');
+                                    frameInfo.error = 'Debit radio button not found';
+                                }
+                            } else {
+                                logDebug('VISA option not found');
+                                frameInfo.error = 'VISA option not found';
                             }
-                        } else {
-                            logDebug('Select element not found. Searching for similar elements...');
-                            
-                            // Log all select and select-like elements for debugging
-                            const allSelects = document.querySelectorAll('select');
-                            const allComboboxes = document.querySelectorAll('[role="combobox"]');
-                            
-                            logDebug(`Found ${allSelects.length} select elements`);
-                            logDebug(`Found ${allComboboxes.length} combobox elements`);
-                            
-                            frameInfo.error = 'Select element not found after multiple attempts';
+                        } catch (selectError) {
+                            logDebug(`Error interacting with elements: ${selectError.message}`);
+                            frameInfo.error = `Element interaction error: ${selectError.message}`;
                         }
-                    }, 2000);
-
+                    } else {
+                        logDebug('Select element not found');
+                        frameInfo.error = 'Select element not found';
+                    }
                 } catch (clickError) {
                     logDebug(`First click error: ${clickError.message}`);
                     frameInfo.error = `First click error: ${clickError.message}`;
@@ -142,14 +314,76 @@ function AutoDeposit() {
             frameInfo.error = `Frame error: ${error.message}`;
         }
 
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve(frameInfo);
-            }, 2500);
-        });
+        return frameInfo;
     };
 
-    // ... rest of the component remains the same ...
+    const handleClick = async () => {
+        if (isProcessing) {
+            setStatus('Already processing a click, please wait...');
+            return;
+        }
+
+        setIsProcessing(true);
+        setStatus('Starting execution...');
+        setDebug(['Beginning click sequence...']);
+
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            const tab = tabs[0];
+            
+            if (!tab?.id) {
+                setStatus('No active tab found');
+                setIsProcessing(false);
+                return;
+            }
+
+            const frameResults = await chrome.scripting.executeScript({
+                target: { 
+                    tabId: tab.id,
+                    allFrames: true
+                },
+                func: initializeAndClickElement,
+                world: "MAIN"
+            });
+
+            const successfulResult = frameResults.find(result => 
+                result?.result?.firstElementClicked
+            );
+            
+            if (successfulResult) {
+                const result = successfulResult.result;
+                setStatus('Elements clicked successfully');
+                setDebug([
+                    'First element clicked',
+                    `URL: ${result.url}`,
+                    `Second element found: ${result.hasSecondElement}`,
+                    `Second element clicked: ${result.secondElementClicked}`,
+                    `Debit option selected: ${result.debitSelected}`,
+                    `Amount entered: ${result.amountEntered}`,
+                    `Checkbox clicked: ${result.checkboxClicked}`,
+                    '---Debug Info---',
+                    ...(result.debugInfo || [])
+                ]);
+            } else {
+                setStatus('Failed to click elements');
+                setDebug([
+                    'Element interaction failed',
+                    ...frameResults.map(result => 
+                        `Frame URL: ${result?.result?.url || 'unknown'}\n` +
+                        `Error: ${result?.result?.error || 'No specific error'}`
+                    )
+                ]);
+            }
+        } catch (error) {
+            console.error('Execution error:', error);
+            setStatus(`Error: ${error.message}`);
+            setDebug([`Error details: ${error.stack || error.message}`]);
+        } finally {
+            setTimeout(() => {
+                setIsProcessing(false);
+            }, 500);
+        }
+    };
 
     return (
         <div className="p-4">
