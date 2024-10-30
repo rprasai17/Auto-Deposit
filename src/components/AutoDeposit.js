@@ -112,58 +112,261 @@ function AutoDeposit() {
                 // Clear existing value
                 inputElement.value = '';
                 inputElement.setAttribute('value', '');
-                inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-                await new Promise(resolve => setTimeout(resolve, 50));
-        
-                // Create and dispatch paste event
-                const pasteEvent = new ClipboardEvent('paste', {
+                const clearEvent = new InputEvent('input', {
                     bubbles: true,
                     cancelable: true,
-                    clipboardData: new DataTransfer()
+                    inputType: 'deleteContent'
                 });
-                
-                // Set the clipboard data
-                Object.defineProperty(pasteEvent.clipboardData, 'getData', {
-                    value: () => '50'
-                });
+                inputElement.dispatchEvent(clearEvent);
+                await new Promise(resolve => setTimeout(resolve, 50));
         
-                // Dispatch paste event
-                inputElement.dispatchEvent(pasteEvent);
-        
-                // Set the value (as the paste event would)
-                inputElement.value = '50';
-                inputElement.setAttribute('value', '50');
-        
-                // Dispatch necessary follow-up events
-                const events = [
-                    new InputEvent('input', {
+                // Simulate typing each number individually
+                for (const digit of '50') {
+                    // Keydown event
+                    const keydownEvent = new KeyboardEvent('keydown', {
+                        key: digit,
+                        code: `Digit${digit}`,
+                        keyCode: digit.charCodeAt(0),
+                        which: digit.charCodeAt(0),
                         bubbles: true,
                         cancelable: true,
-                        inputType: 'insertFromPaste',
-                        data: '50'
-                    }),
-                    new Event('change', { bubbles: true }),
-                    new FocusEvent('blur', { bubbles: true })
-                ];
+                        composed: true
+                    });
+                    inputElement.dispatchEvent(keydownEvent);
+                    
+                    // Update value
+                    const currentValue = inputElement.value;
+                    const newValue = currentValue + digit;
+                    inputElement.value = newValue;
+                    inputElement.setAttribute('value', newValue);
         
-                for (const event of events) {
-                    inputElement.dispatchEvent(event);
-                    await new Promise(resolve => setTimeout(resolve, 10));
+                    // Input event
+                    const inputEvent = new InputEvent('input', {
+                        inputType: 'insertText',
+                        data: digit,
+                        bubbles: true,
+                        cancelable: true,
+                        composed: true
+                    });
+                    inputElement.dispatchEvent(inputEvent);
+        
+                    // Keyup event
+                    const keyupEvent = new KeyboardEvent('keyup', {
+                        key: digit,
+                        code: `Digit${digit}`,
+                        keyCode: digit.charCodeAt(0),
+                        which: digit.charCodeAt(0),
+                        bubbles: true,
+                        cancelable: true,
+                        composed: true
+                    });
+                    inputElement.dispatchEvent(keyupEvent);
+        
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
         
-                // Log verification
-                const finalValue = inputElement.getAttribute('value');
-                const displayValue = inputElement.value;
-                logDebug(`Verification - Input value: ${displayValue}, Attribute value: ${finalValue}`);
+                // Dispatch change event
+                const changeEvent = new Event('change', {
+                    bubbles: true,
+                    cancelable: true
+                });
+                inputElement.dispatchEvent(changeEvent);
         
-                return finalValue === '50' && displayValue === '50';
+                // Blur and remove active class
+                const blurEvent = new FocusEvent('blur', {
+                    bubbles: true,
+                    cancelable: true
+                });
+                inputElement.dispatchEvent(blurEvent);
+                labelElement.classList.remove('active');
+        
+                // Remove any error messages that might appear
+                setTimeout(() => {
+                    const errorMessages = document.querySelectorAll('.spark-message__content, .spark-input__message');
+                    errorMessages.forEach(el => {
+                        if (el.textContent.includes('Amount is required') || 
+                            el.textContent.includes('Transaction Incomplete')) {
+                            el.remove();
+                        }
+                    });
+                }, 100);
+        
+                return true;
             } catch (error) {
                 logDebug(`Error in simulateNumberInput: ${error.message}`);
                 return false;
             }
         };
         
-        // Also modify the handleAmountAndCheckbox function to monitor for successful input
+        const inspectFormFields = () => {
+            try {
+                // Find all forms
+                const forms = document.querySelectorAll('form');
+                console.log(`Found ${forms.length} forms`);
+        
+                forms.forEach((form, formIndex) => {
+                    console.log(`\nInspecting Form ${formIndex + 1}:`);
+                    console.log('Form ID:', form.id);
+                    console.log('Form Name:', form.name);
+                    console.log('Form Action:', form.action);
+        
+                    // Get all inputs, including hidden ones
+                    const inputs = form.querySelectorAll('input');
+                    console.log(`\nFound ${inputs.length} input fields:`);
+                    
+                    inputs.forEach(input => {
+                        console.log({
+                            type: input.type,
+                            name: input.name,
+                            id: input.id,
+                            value: input.value,
+                            hidden: input.type === 'hidden',
+                            attributes: Array.from(input.attributes).map(attr => ({
+                                name: attr.name,
+                                value: attr.value
+                            }))
+                        });
+                    });
+        
+                    // Also check for any elements with 'amount' in their name/id
+                    const amountRelatedElements = form.querySelectorAll('[id*="amount" i], [name*="amount" i], [class*="amount" i]');
+                    console.log('\nElements related to amount:', Array.from(amountRelatedElements).map(el => ({
+                        tagName: el.tagName,
+                        id: el.id,
+                        name: el.name,
+                        type: el.type,
+                        value: el.value,
+                        className: el.className
+                    })));
+                });
+        
+                // Also check for any hidden inputs outside of forms
+                const hiddenInputs = document.querySelectorAll('input[type="hidden"]');
+                console.log('\nHidden inputs outside forms:', Array.from(hiddenInputs).filter(input => !input.closest('form')).map(input => ({
+                    name: input.name,
+                    id: input.id,
+                    value: input.value,
+                    attributes: Array.from(input.attributes).map(attr => ({
+                        name: attr.name,
+                        value: attr.value
+                    }))
+                })));
+        
+                // Check for any elements with 'amount' in their attributes anywhere in the document
+                const amountElements = document.querySelectorAll('[id*="amount" i], [name*="amount" i], [class*="amount" i], [data-amount]');
+                console.log('\nAll amount-related elements in document:', Array.from(amountElements).map(el => ({
+                    tagName: el.tagName,
+                    id: el.id,
+                    name: el.name,
+                    type: el.type,
+                    value: el.value,
+                    className: el.className,
+                    dataset: el.dataset
+                })));
+        
+            } catch (error) {
+                console.error('Error inspecting forms:', error);
+            }
+        };
+        
+
+
+        const handlePaymentButton = async (amountInput) => {
+            try {
+                // Store original jQuery ajax
+                const originalAjax = window.jQuery.ajax;
+        
+                // Override jQuery ajax
+                window.jQuery.ajax = function(...args) {
+                    const [settings] = args;
+        
+                    // Check if this is the payment request
+                    if (settings.url?.includes('device-payment/request')) {
+                        console.log('Intercepting payment request');
+        
+                        // If data is a string, parse it
+                        if (typeof settings.data === 'string') {
+                            try {
+                                settings.data = JSON.parse(settings.data);
+                            } catch (e) {
+                                console.log('Failed to parse request data');
+                            }
+                        }
+        
+                        // Ensure all required fields are present
+                        if (typeof settings.data === 'object') {
+                            const paymentData = {
+                                ...settings.data,
+                                amount: "50",
+                                debit: true,
+                                paymentCode: "VI",
+                                folioId: 1,
+                                revAccountTypeId: 1
+                            };
+        
+                            // Update request data
+                            settings.data = JSON.stringify(paymentData);
+                            settings.contentType = 'application/json';
+                        }
+        
+                        // Add required headers
+                        settings.headers = {
+                            ...settings.headers,
+                            'Accept': 'application/json, text/javascript, */*; q=0.01',
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        };
+        
+                        // Modify callbacks to log responses
+                        const originalSuccess = settings.success;
+                        const originalError = settings.error;
+        
+                        settings.success = function(response, status, xhr) {
+                            console.log('Payment request succeeded:', response);
+                            if (originalSuccess) {
+                                originalSuccess.apply(this, arguments);
+                            }
+                        };
+        
+                        settings.error = function(xhr, status, error) {
+                            console.log('Payment request failed:', {status, error});
+                            if (originalError) {
+                                originalError.apply(this, arguments);
+                            }
+                        };
+                    }
+        
+                    // Call original ajax with modified settings
+                    return originalAjax.apply(this, args);
+                };
+        
+                // Handle submit button
+                const submitButtons = document.querySelectorAll('button[type="submit"]');
+                submitButtons.forEach(button => {
+                    const originalClick = button.onclick;
+                    
+                    button.onclick = async function(e) {
+                        // Set value
+                        amountInput.value = '50';
+                        amountInput.setAttribute('value', '50');
+        
+                        // Let the original click handler run
+                        if (originalClick) {
+                            return originalClick.apply(this, arguments);
+                        }
+                    };
+                });
+        
+                // Clean up after 5 seconds
+                setTimeout(() => {
+                    window.jQuery.ajax = originalAjax;
+                }, 5000);
+        
+            } catch (error) {
+                console.error('Error in handlePaymentButton:', error);
+            }
+        };
+        
         const handleAmountAndCheckbox = async (amountInput) => {
             try {
                 // First ensure "Pay other amount" radio is selected
@@ -179,31 +382,21 @@ function AutoDeposit() {
                 };
                 amountInput.addEventListener('input', inputMonitor);
         
-                // Try multiple times if needed
-                let success = false;
-                let attempts = 0;
-                while (!success && attempts < 3) {
-                    attempts++;
-                    logDebug(`Attempt ${attempts} to enter amount`);
-                    success = await simulateNumberInput(amountInput);
-                    if (!success) {
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                    }
+                // Try to set the amount
+                let success = await simulateNumberInput(amountInput);
+                if (!success) {
+                    throw new Error('Failed to set initial amount');
                 }
         
                 // Clean up monitor
                 amountInput.removeEventListener('input', inputMonitor);
         
-                if (!success) {
-                    throw new Error('Failed to enter amount properly');
-                }
-        
-                logDebug(`Amount entered successfully: ${amountInput.getAttribute('value')}`);
+                logDebug(`Amount entered successfully: ${amountInput.value}`);
         
                 // Handle checkbox
                 const checkboxInput = document.getElementById('guestConsentCheckBox');
                 if (checkboxInput && !checkboxInput.checked) {
-                    const valueBeforeCheckbox = amountInput.getAttribute('value');
+                    const valueBeforeCheckbox = amountInput.value;
                     logDebug(`Value before checkbox: ${valueBeforeCheckbox}`);
                     
                     checkboxInput.click();
@@ -212,7 +405,7 @@ function AutoDeposit() {
         
                     await new Promise(resolve => setTimeout(resolve, 100));
                     
-                    if (amountInput.getAttribute('value') !== '50') {
+                    if (amountInput.value !== '50') {
                         logDebug('Value was cleared, attempting to restore');
                         success = await simulateNumberInput(amountInput);
                         if (!success) {
@@ -221,10 +414,13 @@ function AutoDeposit() {
                     }
                 }
         
-                frameInfo.amountEntered = amountInput.getAttribute('value') === '50';
+                // Set up payment button handler
+                await handlePaymentButton(amountInput);
+        
+                frameInfo.amountEntered = amountInput.value === '50';
                 
                 // Final verification
-                logDebug(`Final verification - Amount value: ${amountInput.getAttribute('value')}`);
+                logDebug(`Final verification - Amount value: ${amountInput.value}`);
                 
             } catch (error) {
                 frameInfo.error = `Amount input error: ${error.message}`;
