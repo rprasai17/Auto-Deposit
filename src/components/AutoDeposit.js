@@ -16,7 +16,17 @@ function AutoDeposit() {
             amountEntered: false,
             checkboxClicked: false,
             error: null,
-            debugInfo: []
+            debugInfo: [],
+            reactDetails: {
+                hasReactInstance: false,
+                hasReactProps: false,
+                hasOnChange: false,
+                hasOnInput: false
+            },
+            sparkDetails: {
+                hasSparkInstance: false,
+                sparkMethodsCalled: []
+            }
         };
 
         const logDebug = (message) => {
@@ -97,106 +107,110 @@ function AutoDeposit() {
 
         const simulateNumberInput = async (inputElement) => {
             try {
+                logDebug('Starting number input simulation');
+        
+                const createKeyboardEvent = (type, key) => {
+                    const charCode = key.charCodeAt(0);
+                    const keyCode = charCode;
+                    
+                    // Create the event with all the properties their code checks
+                    const event = new KeyboardEvent(type, {
+                        key: key,
+                        code: `Digit${key}`,
+                        charCode: type === 'keypress' ? charCode : 0,
+                        keyCode: keyCode,
+                        which: type === 'keypress' ? charCode : keyCode,
+                        bubbles: true,
+                        cancelable: true,
+                        composed: true,
+                        isTrusted: true,
+                        view: window
+                    });
+        
+                    // Force the charCode property
+                    Object.defineProperties(event, {
+                        charCode: { value: type === 'keypress' ? charCode : 0 },
+                        keyCode: { value: keyCode },
+                        which: { value: type === 'keypress' ? charCode : keyCode }
+                    });
+        
+                    return event;
+                };
+        
                 // Get label element
                 const labelElement = inputElement.closest('label.spark-input');
                 if (!labelElement) {
-                    throw new Error('Could not find parent label');
+                    logDebug('Could not find parent label');
+                    return false;
                 }
         
-                // Focus and click
+                // Focus and activate
                 inputElement.focus();
-                inputElement.click();
                 labelElement.classList.add('active');
-                await new Promise(resolve => setTimeout(resolve, 50));
+                await new Promise(resolve => setTimeout(resolve, 100));
         
-                // Clear existing value
+                // Clear the input first
                 inputElement.value = '';
-                inputElement.setAttribute('value', '');
-                const clearEvent = new InputEvent('input', {
-                    bubbles: true,
-                    cancelable: true,
-                    inputType: 'deleteContent'
-                });
+                const clearEvent = new Event('input', { bubbles: true });
                 inputElement.dispatchEvent(clearEvent);
                 await new Promise(resolve => setTimeout(resolve, 50));
         
-                // Simulate typing each number individually
-                for (const digit of '50') {
-                    // Keydown event
-                    const keydownEvent = new KeyboardEvent('keydown', {
-                        key: digit,
-                        code: `Digit${digit}`,
-                        keyCode: digit.charCodeAt(0),
-                        which: digit.charCodeAt(0),
-                        bubbles: true,
-                        cancelable: true,
-                        composed: true
-                    });
-                    inputElement.dispatchEvent(keydownEvent);
-                    
-                    // Update value
-                    const currentValue = inputElement.value;
-                    const newValue = currentValue + digit;
-                    inputElement.value = newValue;
-                    inputElement.setAttribute('value', newValue);
+                // Type each number with proper event sequence
+                for (const num of '50') {
+                    // 1. Keydown
+                    const keydownEvent = createKeyboardEvent('keydown', num);
+                    const keydownResult = inputElement.dispatchEvent(keydownEvent);
+                    logDebug(`Keydown dispatched: ${keydownResult}`);
+                    await new Promise(resolve => setTimeout(resolve, 10));
         
-                    // Input event
+                    // 2. Keypress (crucial for their event system)
+                    const keypressEvent = createKeyboardEvent('keypress', num);
+                    const keypressResult = inputElement.dispatchEvent(keypressEvent);
+                    logDebug(`Keypress dispatched: ${keypressResult}`);
+                    await new Promise(resolve => setTimeout(resolve, 10));
+        
+                    // 3. Update value
+                    const currentValue = inputElement.value + num;
+                    inputElement.value = currentValue;
+                    inputElement.setAttribute('value', currentValue);
+        
+                    // 4. Input event
                     const inputEvent = new InputEvent('input', {
                         inputType: 'insertText',
-                        data: digit,
+                        data: num,
                         bubbles: true,
                         cancelable: true,
                         composed: true
                     });
                     inputElement.dispatchEvent(inputEvent);
+                    await new Promise(resolve => setTimeout(resolve, 10));
         
-                    // Keyup event
-                    const keyupEvent = new KeyboardEvent('keyup', {
-                        key: digit,
-                        code: `Digit${digit}`,
-                        keyCode: digit.charCodeAt(0),
-                        which: digit.charCodeAt(0),
-                        bubbles: true,
-                        cancelable: true,
-                        composed: true
-                    });
-                    inputElement.dispatchEvent(keyupEvent);
-        
+                    // 5. Keyup
+                    const keyupEvent = createKeyboardEvent('keyup', num);
+                    const keyupResult = inputElement.dispatchEvent(keyupEvent);
+                    logDebug(`Keyup dispatched: ${keyupResult}`);
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
         
-                // Dispatch change event
-                const changeEvent = new Event('change', {
-                    bubbles: true,
-                    cancelable: true
-                });
+                // Final change event
+                const changeEvent = new Event('change', { bubbles: true });
                 inputElement.dispatchEvent(changeEvent);
+                
+                // Set a flag to track our changes
+                inputElement._programmaticValue = '50';
         
-                // Blur and remove active class
-                const blurEvent = new FocusEvent('blur', {
-                    bubbles: true,
-                    cancelable: true
-                });
-                inputElement.dispatchEvent(blurEvent);
-                labelElement.classList.remove('active');
+                // Final verification
+                const success = inputElement.value === '50';
+                logDebug(`Final value check: ${success ? 'successful' : 'failed'}`);
         
-                // Remove any error messages that might appear
-                setTimeout(() => {
-                    const errorMessages = document.querySelectorAll('.spark-message__content, .spark-input__message');
-                    errorMessages.forEach(el => {
-                        if (el.textContent.includes('Amount is required') || 
-                            el.textContent.includes('Transaction Incomplete')) {
-                            el.remove();
-                        }
-                    });
-                }, 100);
-        
-                return true;
+                return success;
             } catch (error) {
                 logDebug(`Error in simulateNumberInput: ${error.message}`);
                 return false;
             }
         };
+        
+        
         
         const inspectFormFields = () => {
             try {
@@ -273,161 +287,197 @@ function AutoDeposit() {
 
         const handlePaymentButton = async (amountInput) => {
             try {
-                // Store original jQuery ajax
-                const originalAjax = window.jQuery.ajax;
+                const elements = getFormElements();
         
-                // Override jQuery ajax
-                window.jQuery.ajax = function(...args) {
-                    const [settings] = args;
-        
-                    // Check if this is the payment request
-                    if (settings.url?.includes('device-payment/request')) {
-                        console.log('Intercepting payment request');
-        
-                        // If data is a string, parse it
-                        if (typeof settings.data === 'string') {
-                            try {
-                                settings.data = JSON.parse(settings.data);
-                            } catch (e) {
-                                console.log('Failed to parse request data');
-                            }
+                // Protect the value
+                const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+                Object.defineProperty(amountInput, 'value', {
+                    get: function() {
+                        return descriptor.get.call(this);
+                    },
+                    set: function(v) {
+                        if (this._programmaticValue === '50' && v !== '50') {
+                            logDebug('Prevented value clear attempt');
+                            return;
                         }
-        
-                        // Ensure all required fields are present
-                        if (typeof settings.data === 'object') {
-                            const paymentData = {
-                                ...settings.data,
-                                amount: "50",
-                                debit: true,
-                                paymentCode: "VI",
-                                folioId: 1,
-                                revAccountTypeId: 1
-                            };
-        
-                            // Update request data
-                            settings.data = JSON.stringify(paymentData);
-                            settings.contentType = 'application/json';
-                        }
-        
-                        // Add required headers
-                        settings.headers = {
-                            ...settings.headers,
-                            'Accept': 'application/json, text/javascript, */*; q=0.01',
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        };
-        
-                        // Modify callbacks to log responses
-                        const originalSuccess = settings.success;
-                        const originalError = settings.error;
-        
-                        settings.success = function(response, status, xhr) {
-                            console.log('Payment request succeeded:', response);
-                            if (originalSuccess) {
-                                originalSuccess.apply(this, arguments);
-                            }
-                        };
-        
-                        settings.error = function(xhr, status, error) {
-                            console.log('Payment request failed:', {status, error});
-                            if (originalError) {
-                                originalError.apply(this, arguments);
-                            }
-                        };
-                    }
-        
-                    // Call original ajax with modified settings
-                    return originalAjax.apply(this, args);
-                };
-        
-                // Handle submit button
-                const submitButtons = document.querySelectorAll('button[type="submit"]');
-                submitButtons.forEach(button => {
-                    const originalClick = button.onclick;
-                    
-                    button.onclick = async function(e) {
-                        // Set value
-                        amountInput.value = '50';
-                        amountInput.setAttribute('value', '50');
-        
-                        // Let the original click handler run
-                        if (originalClick) {
-                            return originalClick.apply(this, arguments);
-                        }
-                    };
+                        descriptor.set.call(this, v);
+                    },
+                    configurable: true
                 });
         
-                // Clean up after 5 seconds
-                setTimeout(() => {
-                    window.jQuery.ajax = originalAjax;
-                }, 5000);
+                // Set up the submit button
+                if (elements.submitButton) {
+                    // Clone the button to remove existing listeners
+                    const originalButton = elements.submitButton;
+                    const newButton = originalButton.cloneNode(true);
+                    originalButton.parentNode.replaceChild(newButton, originalButton);
         
+                    // Add our handler
+                    newButton.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        if (amountInput.value !== '50') {
+                            await simulateNumberInput(amountInput);
+                        }
+        
+                        // Create a new click event that won't trigger our handler
+                        const syntheticClick = new MouseEvent('click', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
+                        });
+                        
+                        // Dispatch directly to submit the form
+                        Object.defineProperty(syntheticClick, '_synthetic', {
+                            value: true,
+                            configurable: true
+                        });
+                        
+                        newButton.dispatchEvent(syntheticClick);
+                    }, true);
+        
+                    // Handle synthetic clicks
+                    newButton.addEventListener('click', (e) => {
+                        if (!e._synthetic) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
+                    }, false);
+                }
+        
+                return true;
             } catch (error) {
-                console.error('Error in handlePaymentButton:', error);
+                logDebug(`Error in handlePaymentButton: ${error.message}`);
+                return false;
             }
         };
         
         const handleAmountAndCheckbox = async (amountInput) => {
             try {
-                // First ensure "Pay other amount" radio is selected
+                logDebug('Starting handleAmountAndCheckbox');
+        
+                // Ensure "Pay other amount" radio is selected
                 const payOtherAmountRadio = document.getElementById('pay-other-amount-radio-button');
-                if (payOtherAmountRadio && !payOtherAmountRadio.checked) {
-                    payOtherAmountRadio.click();
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                if (payOtherAmountRadio) {
+                    if (!payOtherAmountRadio.checked) {
+                        payOtherAmountRadio.click();
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        logDebug('Other amount radio selected');
+                    } else {
+                        logDebug('Other amount radio was already selected');
+                    }
+                } else {
+                    logDebug('Warning: Could not find other amount radio button');
                 }
         
-                // Set up an input monitor
+                // Set up input monitor
                 const inputMonitor = (event) => {
                     logDebug(`Input event detected - Current value: ${event.target.value}`);
                 };
                 amountInput.addEventListener('input', inputMonitor);
         
-                // Try to set the amount
-                let success = await simulateNumberInput(amountInput);
+                // Try to set the amount with multiple retries
+                let success = false;
+                let attempts = 0;
+                const maxAttempts = 3;
+        
+                while (!success && attempts < maxAttempts) {
+                    attempts++;
+                    logDebug(`Attempt ${attempts} to set amount`);
+                    
+                    success = await simulateNumberInput(amountInput);
+                    
+                    if (success) {
+                        logDebug('Amount set successfully');
+                        break;
+                    }
+        
+                    if (!success && attempts < maxAttempts) {
+                        logDebug('Waiting before retry...');
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+        
                 if (!success) {
-                    throw new Error('Failed to set initial amount');
+                    throw new Error(`Failed to set amount after ${maxAttempts} attempts`);
                 }
         
                 // Clean up monitor
                 amountInput.removeEventListener('input', inputMonitor);
         
-                logDebug(`Amount entered successfully: ${amountInput.value}`);
-        
-                // Handle checkbox
+                // Handle checkbox with retries
                 const checkboxInput = document.getElementById('guestConsentCheckBox');
                 if (checkboxInput && !checkboxInput.checked) {
-                    const valueBeforeCheckbox = amountInput.value;
-                    logDebug(`Value before checkbox: ${valueBeforeCheckbox}`);
+                    logDebug('Attempting to click checkbox');
                     
-                    checkboxInput.click();
-                    frameInfo.checkboxClicked = true;
-                    logDebug('Checkbox clicked');
+                    let checkboxSuccess = false;
+                    attempts = 0;
         
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                    if (amountInput.value !== '50') {
-                        logDebug('Value was cleared, attempting to restore');
-                        success = await simulateNumberInput(amountInput);
-                        if (!success) {
-                            throw new Error('Failed to restore amount after checkbox');
+                    while (!checkboxSuccess && attempts < maxAttempts) {
+                        attempts++;
+                        try {
+                            // Store value before checkbox click
+                            const valueBeforeCheckbox = amountInput.value;
+                            logDebug(`Value before checkbox attempt ${attempts}: ${valueBeforeCheckbox}`);
+        
+                            // Click checkbox
+                            checkboxInput.click();
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            
+                            // Verify checkbox state
+                            checkboxSuccess = checkboxInput.checked;
+                            logDebug(`Checkbox click attempt ${attempts}: ${checkboxSuccess ? 'successful' : 'failed'}`);
+        
+                            // Check if amount was maintained
+                            if (amountInput.value !== '50') {
+                                logDebug('Value was cleared by checkbox, restoring...');
+                                const restoreSuccess = await simulateNumberInput(amountInput);
+                                if (!restoreSuccess) {
+                                    throw new Error('Failed to restore amount after checkbox');
+                                }
+                            }
+        
+                            if (checkboxSuccess) {
+                                frameInfo.checkboxClicked = true;
+                                break;
+                            }
+                        } catch (error) {
+                            logDebug(`Checkbox click attempt ${attempts} failed: ${error.message}`);
+                            if (attempts >= maxAttempts) {
+                                throw error;
+                            }
+                            await new Promise(resolve => setTimeout(resolve, 500));
                         }
                     }
+        
+                    if (!checkboxSuccess) {
+                        throw new Error('Failed to click checkbox after multiple attempts');
+                    }
+                } else {
+                    logDebug('Checkbox was already checked or not found');
                 }
         
-                // Set up payment button handler
-                await handlePaymentButton(amountInput);
-        
+                // Final verification
                 frameInfo.amountEntered = amountInput.value === '50';
                 
-                // Final verification
-                logDebug(`Final verification - Amount value: ${amountInput.value}`);
+                const formState = {
+                    amount: amountInput.value,
+                    checkbox: checkboxInput?.checked,
+                    radio: payOtherAmountRadio?.checked
+                };
                 
+                logDebug(`Final form state: ${JSON.stringify(formState)}`);
+                
+                return formState.amount === '50' && formState.checkbox && formState.radio;
+        
             } catch (error) {
                 frameInfo.error = `Amount input error: ${error.message}`;
                 logDebug(`Error in handleAmountAndCheckbox: ${error.message}`);
+                return false;
             }
         };
-
+        
         try {
             const firstElement = document.getElementById('post-payment-toolbar-item');
             frameInfo.hasFirstElement = !!firstElement;
