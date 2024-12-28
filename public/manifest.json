@@ -12,8 +12,7 @@
   
   "permissions": [
     "activeTab",
-    "scripting",
-    "sidePanel"
+    "scripting"
   ],
   
   "host_permissions": [
@@ -23,12 +22,10 @@
   ],
 
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
 
   "action": {
-    "default_popup": "index.html",
     "default_icon": {
       "16": "logo192.png",
       "32": "logo192.png",
@@ -36,28 +33,11 @@
       "128": "logo192.png"
     }
   },
-
-  "side_panel": {
-    "default_path": "index.html"
-  },
   
   "web_accessible_resources": [
     {
-      "resources": ["index.html", "*.js", "*.css", "*.png"],
+      "resources": ["static/js/*.js", "static/css/*.css", "logo192.png"],
       "matches": ["<all_urls>"]
     }
-  ],
-
-  "commands": {
-    "_execute_action": {
-      "suggested_key": {
-        "default": "Alt+Q"
-      },
-      "description": "Shortcut for execute extension"
-    }
-  },
-
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
-  }
+  ]
 }

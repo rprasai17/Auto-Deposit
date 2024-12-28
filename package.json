@@ -1,6 +1,6 @@
 {
   "name": "sph-chrome-extension",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "private": true,
   "dependencies": {
     "@testing-library/jest-dom": "^5.17.0",
@@ -14,9 +14,11 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "set \"INLINE_RUNTIME_CHUNK=false\" && react-scripts build && npm run post-build",
+    "clean": "if exist build rmdir /s /q build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "post-build": "node scripts/post-build.js"
   },
   "eslintConfig": {
     "extends": [
