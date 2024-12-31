@@ -6,30 +6,33 @@ import reportWebVitals from './reportWebVitals';
 
 // Function to initialize the React app
 const init = () => {
-    // Try to get the widget content container first
-    let container = document.getElementById('room-price-calculator-content');
+    console.log('React initialization starting...');
+    const container = document.getElementById('root');
     
-    // If not found, fall back to root (for development)
-    if (!container) {
-        container = document.getElementById('root');
-    }
-
-    // If we found a container, render the app
     if (container) {
-        const root = ReactDOM.createRoot(container);
-        root.render(
-            <React.StrictMode>
-                <App />
-            </React.StrictMode>
-        );
+        console.log('Found root container, creating React root');
+        try {
+            const root = ReactDOM.createRoot(container);
+            console.log('Created React root, rendering app');
+            
+            root.render(
+                <React.StrictMode>
+                    <App />
+                </React.StrictMode>
+            );
+            console.log('App rendered successfully');
 
-        // Report web vitals
-        reportWebVitals();
+            // Report web vitals
+            reportWebVitals();
+        } catch (error) {
+            console.error('Error rendering React app:', error);
+        }
     } else {
-        // If no container is found, retry after a short delay
+        console.log('Root container not found, retrying in 100ms');
         setTimeout(init, 100);
     }
 };
 
 // Start initialization
+console.log('Starting React app initialization');
 init();

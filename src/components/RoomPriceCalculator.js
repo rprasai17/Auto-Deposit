@@ -5,7 +5,6 @@ function RoomPriceCalculator() {
     const [beforeTaxPrice, setBeforeTaxPrice] = useState('');
     const [error, setError] = useState('');
 
-
     const handleInputChange = (event) => {
         const value = event.target.value;
         setPriceAfterTax(value);
@@ -16,39 +15,45 @@ function RoomPriceCalculator() {
         const taxRate = 0.1788;
 
         const priceAfterTax = parseFloat(price);
-        if (!isNaN(priceAfterTax) && priceAfterTax > 0)
-        {
+        if (!isNaN(priceAfterTax) && priceAfterTax > 0) {
             const beforeTaxPrice = priceAfterTax / (1 + taxRate);
             setBeforeTaxPrice(beforeTaxPrice.toFixed(2));
             setError('');
-        }
-        else
-        {
+        } else {
             setBeforeTaxPrice('');
             setError("Please enter a valid positive number");
         }
     }
 
     return (
-        <div className="container mt-3" style={{ width: '450px' }}>
-            <h2>Room Price Calculator</h2>
+        <div style={{ width: '350px' }}>
+            <h2 style={{ marginBottom: '15px' }}>Room Price Calculator</h2>
             <form>
-                <div className="mb-3">
-                    <label htmlFor="priceAfterTax" className="form-label" style={{  display: 'block'  }}>Price After Tax</label>
+                <div style={{ position: 'relative' }}>
+                    <label htmlFor="priceAfterTax" style={{ display: 'block', marginBottom: '8px' }}>
+                        Price After Tax
+                    </label>
                     <input 
                         type="number"
-                        className="form-control"
                         id="priceAfterTax"
                         placeholder="Enter room price"
                         value={priceAfterTax}
                         onChange={handleInputChange}
+                        style={{ 
+                            width: '100%',
+                            height: '38px',
+                            padding: '8px 12px',
+                            borderRadius: '4px',
+                            border: '1px solid #ccc'
+                        }}
                     />
                 </div>
                 {error && <div className="alert alert-danger">{error}</div>}
             </form>
-            <div className="mt-3">
+            <div style={{ marginTop: '15px' }}>
                 <h2>Before Tax Price: <span>${beforeTaxPrice}</span></h2>
             </div>
+            <div id="depositButtonContainer" style={{ marginTop: '16px' }}></div>
         </div>
     );
 }

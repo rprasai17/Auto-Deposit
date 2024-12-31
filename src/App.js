@@ -5,8 +5,12 @@ import AutoDeposit from './components/AutoDeposit';
 function App() {
   return (
     <div className="App">
-      <RoomPriceCalculator />
-      <AutoDeposit />
+      <div style={{ padding: '16px' }}>
+        <RoomPriceCalculator />
+        <div style={{ marginLeft: '12px', marginTop: '16px', width: '326px' }}>
+          <AutoDeposit />
+        </div>
+      </div>
     </div>
   );
 }

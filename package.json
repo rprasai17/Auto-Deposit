@@ -14,10 +14,10 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "set \"INLINE_RUNTIME_CHUNK=false\" && react-scripts build && npm run post-build",
-    "clean": "if exist build rmdir /s /q build",
+    "build": "set INLINE_RUNTIME_CHUNK=false && react-scripts build && npm run post-build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
+    "clean": "rimraf build",
     "post-build": "node scripts/post-build.js"
   },
   "eslintConfig": {
@@ -39,6 +39,7 @@
     ]
   },
   "devDependencies": {
-    "copy-webpack-plugin": "^12.0.2"
+    "copy-webpack-plugin": "^12.0.2",
+    "rimraf": "^5.0.10"
   }
 }

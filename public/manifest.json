@@ -36,7 +36,15 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["static/js/*.js", "static/css/*.css", "logo192.png"],
+      "resources": [
+        "static/*",
+        "static/js/*",
+        "static/css/*",
+        "static/media/*",
+        "*.js",
+        "*.css",
+        "*.png"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
