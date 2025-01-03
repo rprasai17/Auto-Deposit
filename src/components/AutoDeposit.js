@@ -1,149 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const AutoDeposit = () => {
     const [status, setStatus] = useState('');
     const [debug, setDebug] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const findPaymentButton = () => {
-        const logDebug = (msg) => {
-            console.log(msg);
-            setDebug(prev => [...prev, msg]);
-        };
-
-        // Log all elements with similar attributes
-        const buttons = Array.from(document.querySelectorAll('[role="menubaritem"]'));
-        logDebug(`Found ${buttons.length} menubar items`);
-        
-        buttons.forEach(button => {
-            logDebug('Button found:');
-            logDebug(`- ID: ${button.id}`);
-            logDebug(`- Label: ${button.getAttribute('label')}`);
-            logDebug(`- Classes: ${button.className}`);
-            logDebug(`- Text: ${button.textContent}`);
-        });
-
-        // Try to find the specific button
-        const button = buttons.find(btn => 
-            btn.id === 'post-payment-toolbar-item' || 
-            btn.getAttribute('label')?.toLowerCase() === 'post payment' ||
-            btn.getAttribute('aria-label')?.toLowerCase() === 'post payment'
-        );
-
-        if (button) {
-            logDebug('Found post payment button!');
-            return button;
-        }
-
-        // If not found, try XPath
-        try {
-            const xpath = "//div[@role='menubaritem'][@label='post payment']";
-            const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-            if (result.singleNodeValue) {
-                logDebug('Found button using XPath');
-                return result.singleNodeValue;
-            }
-        } catch (e) {
-            logDebug(`XPath search error: ${e.message}`);
-        }
-
-        return null;
-    };
-
-    const automateSequence = async () => {
-        const logDebug = (msg) => {
-            console.log(msg);
-            setDebug(prev => [...prev, msg]);
-        };
-
-        try {
-            logDebug('Starting automation...');
-
-            // Add a small delay before starting
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Log document state
-            logDebug(`Document ready state: ${document.readyState}`);
-            logDebug(`Body children count: ${document.body.children.length}`);
-
-            // Try to find all relevant containers
-            const containers = {
-                folioView: document.querySelector('.folio-view'),
-                toolbar: document.querySelector('.spark-toolbar'),
-                header: document.querySelector('.folio-transactions-table__header')
-            };
-
-            Object.entries(containers).forEach(([name, element]) => {
-                logDebug(`${name}: ${element ? 'Found' : 'Not found'}`);
-                if (element) {
-                    logDebug(`${name} children: ${element.children.length}`);
-                }
-            });
-
-            // Find the button
-            logDebug('Searching for post payment button...');
-            const button = findPaymentButton();
-
-            if (!button) {
-                // Try querying by full class name
-                const altButton = document.querySelector('.spark-toolbar__item.folio-transactions__post-payment_tool-bar-item');
-                if (altButton) {
-                    logDebug('Found button using class name');
-                    button = altButton;
-                } else {
-                    throw new Error('Post payment button not found');
-                }
-            }
-
-            logDebug('Attempting to click button...');
-            
-            // Try different ways to click the button
-            try {
-                // Method 1: Direct click
-                button.click();
-                logDebug('Direct click executed');
-            } catch (e) {
-                logDebug(`Direct click failed: ${e.message}`);
-                try {
-                    // Method 2: MouseEvent
-                    button.dispatchEvent(new MouseEvent('click', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window
-                    }));
-                    logDebug('MouseEvent click executed');
-                } catch (e2) {
-                    logDebug(`MouseEvent click failed: ${e2.message}`);
-                }
-            }
-
-            // Wait for potential dialog
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            return true;
-
-        } catch (error) {
-            logDebug(`Operation error: ${error.message}`);
-            return false;
-        }
-    };
-
     const handleClick = async () => {
         if (isProcessing) return;
-        
+
         setIsProcessing(true);
         setStatus('Running automation sequence...');
         setDebug(['Starting automation...']);
 
         try {
-            const success = await automateSequence();
-            setStatus(success ? 'Automation completed successfully' : 'Automation failed');
+            // Get the current tab through the parent window
+            window.parent.postMessage({
+                type: 'RUN_AUTOMATION',
+                source: 'room-price-calculator'
+            }, '*');
         } catch (error) {
             setStatus(`Error: ${error.message}`);
-        } finally {
+            setDebug(prev => [...prev, `Error: ${error.message}`]);
             setIsProcessing(false);
         }
     };
+
+    // Listen for messages from content script
+    useEffect(() => {
+        const handleMessage = (event) => {
+            if (event.data.type === 'AUTOMATION_STATUS') {
+                setIsProcessing(false);
+                if (event.data.success) {
+                    setStatus('Automation completed successfully');
+                    setDebug(prev => [...prev, 'Automation successful']);
+                } else {
+                    setStatus(`Automation failed: ${event.data.error}`);
+                    setDebug(prev => [...prev, `Failed: ${event.data.error}`]);
+                }
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
 
     return (
         <div className="w-full space-y-4">

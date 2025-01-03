@@ -1,3 +1,4 @@
+// index.js
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
@@ -21,7 +22,6 @@ const init = () => {
                 </React.StrictMode>
             );
             console.log('App rendered successfully');
-
             // Report web vitals
             reportWebVitals();
         } catch (error) {
@@ -33,6 +33,20 @@ const init = () => {
     }
 };
 
-// Start initialization
-console.log('Starting React app initialization');
-init();
+// Start initialization when document is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('Starting React app initialization');
+        init();
+    });
+} else {
+    console.log('Starting React app initialization');
+    init();
+}
+
+
+// Also listen for our custom event from content script
+document.addEventListener('INIT_REACT_APP', () => {
+    console.log('Received initialization event');
+    init();
+});
