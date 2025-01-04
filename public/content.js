@@ -1,19 +1,35 @@
 (() => {
-    // Global flag to track widget instance
+    // Global flag to prevent multiple initializations
+    if (window.autoDepositInitialized) {
+        console.log('AutoDeposit already initialized, preventing duplicate initialization');
+        return;
+    }
+    window.autoDepositInitialized = true;
+
+    // Single instance tracking
     let widgetInstance = null;
     let lastAutomationId = null;
 
-    function createWidgetContainer() {
-        // Remove existing widget if it exists
-        if (widgetInstance) {
-            widgetInstance.remove();
-        }
+    // Function to remove existing widgets
+    function removeExistingWidgets() {
+        const existingWidgets = document.querySelectorAll('#autodeposit-host');
+        existingWidgets.forEach(widget => {
+            console.log('Removing existing widget');
+            widget.remove();
+        });
+        widgetInstance = null;
+    }
 
+    function createWidgetContainer() {
+        // Remove any existing widgets first
+        removeExistingWidgets();
+
+        // Create new widget
         const host = document.createElement('div');
-        host.id = 'room-price-calculator-host';
+        host.id = 'autodeposit-host';
 
         // Get saved position
-        const savedPosition = localStorage.getItem('widgetPosition');
+        const savedPosition = localStorage.getItem('autodeposit-position');
         const position = savedPosition ? JSON.parse(savedPosition) : { x: 20, y: 20 };
 
         const shadow = host.attachShadow({ mode: 'open' });
@@ -21,7 +37,7 @@
         // Add styles
         const styles = document.createElement('style');
         styles.textContent = `
-            #room-price-calculator-widget {
+            #autodeposit-widget {
                 position: fixed;
                 top: ${position.y}px;
                 left: ${position.x}px;
@@ -92,19 +108,22 @@
 
         // Create widget container
         const container = document.createElement('div');
-        container.id = 'room-price-calculator-widget';
+        container.id = 'autodeposit-widget';
 
         // Create header
         const dragHandle = document.createElement('div');
         dragHandle.className = 'drag-handle';
         const title = document.createElement('span');
-        title.textContent = 'Room Price Calculator';
+        title.textContent = 'AutoDeposit';
         dragHandle.appendChild(title);
 
         const closeButton = document.createElement('button');
         closeButton.innerHTML = '✕';
         closeButton.className = 'close-button';
-        closeButton.onclick = () => host.remove();
+        closeButton.onclick = () => {
+            host.remove();
+            widgetInstance = null;
+        };
         dragHandle.appendChild(closeButton);
 
         // Create content
@@ -115,21 +134,23 @@
         const depositButton = document.createElement('button');
         depositButton.className = 'deposit-button';
         depositButton.textContent = 'Enter Deposit';
-        // In content.js, update the deposit button onclick handler:
         depositButton.onclick = async () => {
             depositButton.disabled = true;
             depositButton.textContent = 'Processing...';
+            
+            const debugInfo = shadow.querySelector('.debug-info');
+            const statusText = shadow.querySelector('.status-text');
             debugInfo.textContent = ''; // Clear previous debug info
-
+            
             try {
                 statusText.textContent = 'Starting automation...';
                 console.log('Sending automation request...');
-
+                
                 chrome.runtime.sendMessage({
                     type: 'EXECUTE_AUTOMATION'
                 }, (response) => {
-                    console.log('Received automation response:', response);
-
+                    console.log('Automation response:', response);
+                    
                     if (response?.success) {
                         statusText.textContent = 'Automation initiated...';
                         debugInfo.textContent = 'Automation script injected successfully...';
@@ -188,7 +209,7 @@
                 currentY = e.clientY - initialY;
                 container.style.left = `${currentX}px`;
                 container.style.top = `${currentY}px`;
-                localStorage.setItem('widgetPosition', JSON.stringify({
+                localStorage.setItem('autodeposit-position', JSON.stringify({
                     x: currentX,
                     y: currentY
                 }));
@@ -202,26 +223,49 @@
         return host;
     }
 
+    // Message listener for Chrome runtime
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === 'TOGGLE_WIDGET') {
+            console.log('Toggle widget requested');
+            
+            if (widgetInstance && document.contains(widgetInstance)) {
+                console.log('Removing existing widget');
+                widgetInstance.remove();
+                widgetInstance = null;
+            } else {
+                console.log('Creating new widget');
+                removeExistingWidgets(); // Clean up any orphaned widgets
+                widgetInstance = createWidgetContainer();
+                document.body.appendChild(widgetInstance);
+            }
+            
+            sendResponse({ success: true });
+        }
+        return true;
+    });
+
+    // Initial cleanup
+    removeExistingWidgets();
+
     // Message listener for automation updates
     window.addEventListener('message', (event) => {
+        if (!widgetInstance) return;
+
         if (event.data.type === 'AUTOMATION_LOG') {
             if (lastAutomationId && lastAutomationId !== event.data.automationId) {
                 return; // Ignore messages from old automation runs
             }
             lastAutomationId = event.data.automationId;
 
-            const debugInfo = document.querySelector('#room-price-calculator-host')
-                ?.shadowRoot?.querySelector('.debug-info');
+            const debugInfo = widgetInstance.shadowRoot?.querySelector('.debug-info');
             if (debugInfo) {
                 debugInfo.textContent += '\n' + event.data.message;
                 debugInfo.scrollTop = debugInfo.scrollHeight;
             }
         } else if (event.data.type === 'AUTOMATION_COMPLETE') {
-            const statusText = document.querySelector('#room-price-calculator-host')
-                ?.shadowRoot?.querySelector('.status-text');
-            const depositButton = document.querySelector('#room-price-calculator-host')
-                ?.shadowRoot?.querySelector('.deposit-button');
-
+            const statusText = widgetInstance.shadowRoot?.querySelector('.status-text');
+            const depositButton = widgetInstance.shadowRoot?.querySelector('.deposit-button');
+            
             if (statusText && depositButton) {
                 if (event.data.success) {
                     statusText.textContent = 'Automation completed successfully';
@@ -234,26 +278,5 @@
         }
     });
 
-    // Chrome runtime message listener
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.type === 'TOGGLE_WIDGET') {
-            if (widgetInstance && document.contains(widgetInstance)) {
-                widgetInstance.remove();
-                widgetInstance = null;
-            } else {
-                widgetInstance = createWidgetContainer();
-                document.body.appendChild(widgetInstance);
-            }
-            sendResponse({ success: true });
-        }
-        return true;
-    });
-
-    // Clean up any existing widgets when the script loads
-    const existingWidget = document.getElementById('room-price-calculator-host');
-    if (existingWidget) {
-        existingWidget.remove();
-    }
-
-    console.log('Content script loaded successfully');
+    console.log('AutoDeposit content script loaded successfully');
 })();

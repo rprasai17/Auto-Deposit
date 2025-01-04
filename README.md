@@ -1,70 +1,153 @@
-# Getting Started with Create React App
+# AutoDeposit Chrome Extension
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Description
+A Chrome extension designed to automate payment processing in the Synxis Control Center system. This extension provides a floating widget interface that automates multiple form interactions including payment method selection, amount entry, and consent confirmation.
 
-## Available Scripts
+## Features
+- Floating, draggable widget interface
+- Automated form filling and interaction
+- Real-time status updates and debugging information
+- Position memory for widget placement
+- Robust error handling and retry mechanisms
 
-In the project directory, you can run:
+## Installation
+1. Download or clone the repository
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable "Developer mode" in the top right corner
+4. Click "Load unpacked" and select the extension directory
 
-### `npm start`
+## File Structure
+```
+room-price-calculator/
+├── manifest.json
+├── background.js
+├── content.js
+├── automationScript.js
+├── static/
+│   ├── logo192.png
+│   └── other assets...
+└── README.md
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Configuration
+The extension requires the following permissions in manifest.json:
+```json
+{
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://controlcenter-p2.synxis.com/*",
+    "https://*.synxis.com/*"
+  ]
+}
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Usage
+1. Click the extension icon to open the widget
+2. Position the widget as desired (position will be remembered)
+3. Click "Enter Deposit" to start the automation
+4. The automation will:
+   - Click the post payment button
+   - Select "VI - VISA" as payment method
+   - Select the debit radio button
+   - Enter amount "50"
+   - Check the consent checkbox
 
-### `npm test`
+## Debugging
+- The widget includes a debug information panel
+- Check the browser console for detailed logs
+- Status messages appear in the widget interface
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Technical Details
+### Components
+- **background.js**: Handles extension initialization and messaging
+- **content.js**: Manages widget creation and UI interactions
+- **automationScript.js**: Contains the automation logic
 
-### `npm run build`
+### Key Functions
+```javascript
+// Automation sequence
+async function runAutomation() {
+    // Handles element finding and interaction
+}
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+// Widget creation
+function createWidgetContainer() {
+    // Creates and manages the floating widget
+}
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+// Element interaction
+const findElementInFrames = (selector) => {
+    // Finds elements across multiple frames
+}
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Error Handling
+- Retry mechanism for failed operations
+- Detailed error logging
+- User-friendly error messages
+- Frame detection and handling
 
-### `npm run eject`
+## Browser Compatibility
+- Chrome Version: Latest version recommended
+- Works with Synxis Control Center system
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Development
+### Building from Source
+1. Clone the repository
+2. Make necessary modifications
+3. Test in Chrome using "Load unpacked"
+4. Package for distribution if needed
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Testing
+1. Open Chrome Developer Tools
+2. Monitor console for debugging information
+3. Check widget debug panel for operation status
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Known Issues
+- Must be used on Synxis pages
+- Requires proper page loading before automation
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Security
+- Extension operates only on specified domains
+- No sensitive data is stored or transmitted
+- Local storage used only for widget position
 
-## Learn More
+## Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## License
 
-To learn React, check out the [React documentation](https://reactjs.org/).
 
-### Code Splitting
+## Support
+- For bugs, submit an issue in the repository
+- For questions, contact [your contact information]
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Acknowledgments
+- Built for use with Synxis Control Center
+- Uses Chrome Extension Manifest V3
 
-### Analyzing the Bundle Size
+## Version History
+- 0.0.1: Initial release
+  - Basic automation functionality
+  - Widget interface
+  - Debugging capabilities
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Future Improvements
+- Additional payment method support
+- Customizable amount entry
+- Enhanced error recovery
+- Configuration options
 
-### Making a Progressive Web App
+## Notes
+- Ensure all necessary permissions are enabled
+- Keep Chrome and the extension updated
+- Test on a non-production environment first
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This README provides a comprehensive overview of your extension. You may want to customize it further based on specific requirements or additional features you plan to add.
