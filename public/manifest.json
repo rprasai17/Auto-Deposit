@@ -29,10 +29,10 @@
   },
   "action": {
     "default_icon": {
-      "16": "logo192.png",
-      "32": "logo192.png",
-      "48": "logo192.png",
-      "128": "logo192.png"
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
     }
   },
   "web_accessible_resources": [

@@ -1,40 +1,23 @@
 (() => {
-    // Global flag to prevent multiple initializations
-    if (window.autoDepositInitialized) {
-        console.log('AutoDeposit already initialized, preventing duplicate initialization');
-        return;
+    function removeExistingWidgets() {
+        const existingWidgets = document.querySelectorAll('#autodeposit-host');
+        existingWidgets.forEach(widget => widget.remove());
     }
-    window.autoDepositInitialized = true;
 
-    // Single instance tracking
     let widgetInstance = null;
     let lastAutomationId = null;
 
-    // Function to remove existing widgets
-    function removeExistingWidgets() {
-        const existingWidgets = document.querySelectorAll('#autodeposit-host');
-        existingWidgets.forEach(widget => {
-            console.log('Removing existing widget');
-            widget.remove();
-        });
-        widgetInstance = null;
-    }
-
     function createWidgetContainer() {
-        // Remove any existing widgets first
         removeExistingWidgets();
 
-        // Create new widget
         const host = document.createElement('div');
         host.id = 'autodeposit-host';
 
-        // Get saved position
         const savedPosition = localStorage.getItem('autodeposit-position');
         const position = savedPosition ? JSON.parse(savedPosition) : { x: 20, y: 20 };
 
         const shadow = host.attachShadow({ mode: 'open' });
 
-        // Add styles
         const styles = document.createElement('style');
         styles.textContent = `
             #autodeposit-widget {
@@ -106,11 +89,9 @@
         `;
         shadow.appendChild(styles);
 
-        // Create widget container
         const container = document.createElement('div');
         container.id = 'autodeposit-widget';
 
-        // Create header
         const dragHandle = document.createElement('div');
         dragHandle.className = 'drag-handle';
         const title = document.createElement('span');
@@ -126,11 +107,9 @@
         };
         dragHandle.appendChild(closeButton);
 
-        // Create content
         const content = document.createElement('div');
         content.className = 'widget-content';
 
-        // Add deposit button
         const depositButton = document.createElement('button');
         depositButton.className = 'deposit-button';
         depositButton.textContent = 'Enter Deposit';
@@ -140,7 +119,7 @@
             
             const debugInfo = shadow.querySelector('.debug-info');
             const statusText = shadow.querySelector('.status-text');
-            debugInfo.textContent = ''; // Clear previous debug info
+            debugInfo.textContent = '';
             
             try {
                 statusText.textContent = 'Starting automation...';
@@ -171,22 +150,18 @@
         };
         content.appendChild(depositButton);
 
-        // Add status text
         const statusText = document.createElement('div');
         statusText.className = 'status-text';
         content.appendChild(statusText);
 
-        // Add debug info
         const debugInfo = document.createElement('div');
         debugInfo.className = 'debug-info';
         content.appendChild(debugInfo);
 
-        // Assemble widget
         container.appendChild(dragHandle);
         container.appendChild(content);
         shadow.appendChild(container);
 
-        // Make draggable
         let isDragging = false;
         let currentX;
         let currentY;
@@ -223,7 +198,6 @@
         return host;
     }
 
-    // Message listener for Chrome runtime
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === 'TOGGLE_WIDGET') {
             console.log('Toggle widget requested');
@@ -234,7 +208,7 @@
                 widgetInstance = null;
             } else {
                 console.log('Creating new widget');
-                removeExistingWidgets(); // Clean up any orphaned widgets
+                removeExistingWidgets();
                 widgetInstance = createWidgetContainer();
                 document.body.appendChild(widgetInstance);
             }
@@ -244,16 +218,12 @@
         return true;
     });
 
-    // Initial cleanup
-    removeExistingWidgets();
-
-    // Message listener for automation updates
     window.addEventListener('message', (event) => {
         if (!widgetInstance) return;
 
         if (event.data.type === 'AUTOMATION_LOG') {
             if (lastAutomationId && lastAutomationId !== event.data.automationId) {
-                return; // Ignore messages from old automation runs
+                return;
             }
             lastAutomationId = event.data.automationId;
 
@@ -277,6 +247,9 @@
             }
         }
     });
+
+    // Initial cleanup
+    removeExistingWidgets();
 
     console.log('AutoDeposit content script loaded successfully');
 })();
