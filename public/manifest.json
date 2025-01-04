@@ -1,15 +1,8 @@
-
 {
   "manifest_version": 3,
   "name": "Room Price Calculator",
   "version": "0.0.1",
   "description": "Easily calculate room prices before taxes",
-  "icons": {
-    "16": "logo192.png",
-    "32": "logo192.png",
-    "48": "logo192.png",
-    "128": "logo192.png"
-  },
   "permissions": [
     "activeTab",
     "scripting",
@@ -20,6 +13,11 @@
     "https://controlcenter-p2.synxis.com/*",
     "https://*.synxis.com/*"
   ],
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content.js"],
+    "all_frames": true
+  }],
   "background": {
     "service_worker": "background.js"
   },
@@ -31,24 +29,17 @@
       "128": "logo192.png"
     }
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_end"
-    }
-  ],
   "web_accessible_resources": [
     {
       "resources": [
-        "static/js/main.cbaa7084.js",
-        "static/js/453.faca7261.chunk.js",
-        "static/css/main.da16b67b.css",
+        "static/*",
+        "static/js/*",
+        "static/css/*",
         "static/media/*",
         "*.js",
         "*.css",
         "*.png",
-        "*.html"
+        "automationScript.js"
       ],
       "matches": ["<all_urls>"]
     }
