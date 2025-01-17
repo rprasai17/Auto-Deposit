@@ -251,3 +251,4 @@ window.postMessage({
         console.log('Automation already in progress');
     }
 })();
+

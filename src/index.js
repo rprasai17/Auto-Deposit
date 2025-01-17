@@ -7,3 +7,4 @@ import App from './App';
 window.React = React;
 window.ReactDOM = ReactDOM;
 window.App = App;
+

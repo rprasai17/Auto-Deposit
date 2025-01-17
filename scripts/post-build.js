@@ -17,7 +17,7 @@ function copyAndUpdateFiles() {
     const jsFiles = getFilesInDirectory(jsDir, '.js').filter(f => !f.endsWith('.map'));
     const cssFiles = getFilesInDirectory(cssDir, '.css').filter(f => !f.endsWith('.map'));
 
-    // Read manifest
+    // Read manifest file
     const manifestPath = path.join(__dirname, '../public/manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
@@ -55,3 +55,5 @@ try {
     console.error('Error during build post-processing:', error);
     process.exit(1);
 }
+
+

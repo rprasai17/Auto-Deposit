@@ -149,3 +149,4 @@ const findElementInFrames = (selector) => {
 - Keep Chrome and the extension updated
 - Test on a non-production environment first
 
+
