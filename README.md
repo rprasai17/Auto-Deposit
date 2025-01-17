@@ -18,14 +18,13 @@ A Chrome extension designed to automate payment processing in the Synxis Control
 
 ## File Structure
 ```
-room-price-calculator/
+sph-chrome-extension/
 ├── manifest.json
 ├── background.js
 ├── content.js
 ├── automationScript.js
 ├── static/
-│   ├── logo192.png
-│   └── other assets...
+│   ├── other assets...
 └── README.md
 ```
 
@@ -150,4 +149,3 @@ const findElementInFrames = (selector) => {
 - Keep Chrome and the extension updated
 - Test on a non-production environment first
 
-This README provides a comprehensive overview of your extension. You may want to customize it further based on specific requirements or additional features you plan to add.
