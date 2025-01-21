@@ -1,35 +1,54 @@
-# AutoDeposit Chrome Extension
+# 🔄 AutoDeposit Chrome Extension
 
-## Description
+## 📝 Description
 A Chrome extension designed to automate payment processing in the Synxis Control Center system. This extension provides a floating widget interface that automates multiple form interactions including payment method selection, amount entry, and consent confirmation.
 
-## Features
-- Floating, draggable widget interface
-- Automated form filling and interaction
-- Real-time status updates and debugging information
-- Position memory for widget placement
-- Robust error handling and retry mechanisms
+## ✨ Features
+* **Interactive Widget Interface**
+  * Floating, draggable design
+  * Position memory functionality
+  * Intuitive controls
 
-## Installation
+* **Automation Capabilities**
+  * Automated form completion
+  * Payment method selection
+  * Consent handling
+
+* **Advanced Features**
+  * Real-time status updates
+  * Comprehensive debugging information
+  * Robust error handling with retry logic
+
+## 🚀 Installation
+
 1. Download or clone the repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right corner
-4. Click "Load unpacked" and select the extension directory
+```bash
+git clone https://github.com/rprasai17/Auto-Deposit.git
+```
 
-## File Structure
+2. Navigate to Chrome Extensions
+   * Open Chrome and go to `chrome://extensions/`
+   * Enable **"Developer mode"** in the top right corner
+   * Click **"Load unpacked"** and select the extension directory
+
+## 📁 File Structure
+
 ```
 sph-chrome-extension/
 ├── manifest.json
 ├── background.js
 ├── content.js
 ├── automationScript.js
+├── LICENSE
 ├── static/
 │   ├── other assets...
 └── README.md
 ```
 
-## Configuration
-The extension requires the following permissions in manifest.json:
+## ⚙️ Configuration
+
+Required permissions in `manifest.json`:
+
 ```json
 {
   "permissions": [
@@ -45,29 +64,27 @@ The extension requires the following permissions in manifest.json:
 }
 ```
 
-## Usage
-1. Click the extension icon to open the widget
-2. Position the widget as desired (position will be remembered)
-3. Click "Enter Deposit" to start the automation
-4. The automation will:
-   - Click the post payment button
-   - Select "VI - VISA" as payment method
-   - Select the debit radio button
-   - Enter amount "50"
-   - Check the consent checkbox
+## 💡 Usage
 
-## Debugging
-- The widget includes a debug information panel
-- Check the browser console for detailed logs
-- Status messages appear in the widget interface
+1. Launch the extension from Chrome toolbar
+2. Position the widget as desired
+3. Click **"Enter Deposit"** to initiate automation
+4. The automation will perform:
+   * Payment button activation
+   * VISA payment method selection
+   * Debit option selection
+   * Amount entry ($50)
+   * Consent confirmation
 
-## Technical Details
-### Components
-- **background.js**: Handles extension initialization and messaging
-- **content.js**: Manages widget creation and UI interactions
-- **automationScript.js**: Contains the automation logic
+## 🔍 Technical Details
 
-### Key Functions
+### **Components**
+* `background.js`: Extension initialization & messaging
+* `content.js`: Widget management & UI handling
+* `automationScript.js`: Core automation logic
+
+### **Key Functions**
+
 ```javascript
 // Automation sequence
 async function runAutomation() {
@@ -85,68 +102,89 @@ const findElementInFrames = (selector) => {
 }
 ```
 
-## Error Handling
-- Retry mechanism for failed operations
-- Detailed error logging
-- User-friendly error messages
-- Frame detection and handling
+## 🐛 Debugging
 
-## Browser Compatibility
-- Chrome Version: Latest version recommended
-- Works with Synxis Control Center system
+* Built-in debug information panel
+* Console logging for detailed tracking
+* Real-time status updates in widget
 
-## Development
+## 💻 Browser Compatibility
+
+* **Chrome Version:** Latest version recommended
+* **System:** Synxis Control Center compatible
+
+## 🛠️ Development
+
 ### Building from Source
 1. Clone the repository
-2. Make necessary modifications
-3. Test in Chrome using "Load unpacked"
+2. Implement modifications
+3. Test using Chrome's "Load unpacked"
 4. Package for distribution if needed
 
 ### Testing
 1. Open Chrome Developer Tools
-2. Monitor console for debugging information
-3. Check widget debug panel for operation status
+2. Monitor console outputs
+3. Utilize widget debug panel
 
-## Known Issues
-- Must be used on Synxis pages
-- Requires proper page loading before automation
+## ⚠️ Known Issues
 
-## Security
-- Extension operates only on specified domains
-- No sensitive data is stored or transmitted
-- Local storage used only for widget position
+* Synxis page compatibility required
+* Complete page load necessary before automation
 
-## Contributing
+## 🔒 Security
+
+* Domain-specific operation
+* No data storage or transmission
+* Local widget position storage only
+
+## 🤝 Contributing
+
 1. Fork the repository
-2. Create a feature branch
+2. Create your feature branch:
+```bash
+git checkout -b feature/YourFeature
+```
 3. Submit a pull request
 
-## License
+## 📄 License
 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
-- For bugs, submit an issue in the repository
-- For questions, contact [your contact information]
+## 💬 Support
 
-## Acknowledgments
-- Built for use with Synxis Control Center
-- Uses Chrome Extension Manifest V3
+* **Bugs:** Submit via GitHub issues
+* **Questions:** Contact prasairupan@gmail.com
 
-## Version History
-- 0.0.1: Initial release
-  - Basic automation functionality
-  - Widget interface
-  - Debugging capabilities
+## 👏 Acknowledgments
 
-## Future Improvements
-- Additional payment method support
-- Customizable amount entry
-- Enhanced error recovery
-- Configuration options
+* Designed for Synxis Control Center
+* Chrome Extension Manifest V3 implementation
 
-## Notes
-- Ensure all necessary permissions are enabled
-- Keep Chrome and the extension updated
-- Test on a non-production environment first
+## 📈 Version History
 
+* **0.0.1:** Initial Release
+  * Core automation features
+  * Widget interface implementation
+  * Debug capabilities
 
+## 🔮 Future Improvements
+
+* Additional payment methods
+* Customizable amount entry
+* Enhanced error recovery
+* Configuration options
+
+## 📌 Notes
+
+* Enable all required permissions
+* Maintain updated Chrome version
+* Test in non-production environment first
+
+## ⚠️ Disclaimer
+
+**Important:** This extension is not affiliated with, endorsed by, or connected to Synxis Control Center or any of its affiliated companies. Use at your own discretion and in accordance with Synxis Control Center's terms of service.
+
+## 👤 Author
+
+Rupan Prasai
+---
